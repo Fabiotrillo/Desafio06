@@ -8,7 +8,8 @@ import mongoose from 'mongoose';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import sessionRouter from './routes/sessions.router.js'
-
+import passport from 'passport';
+import inicializePassport from './config/passport.config.js';
 
 
 
@@ -29,6 +30,7 @@ app.set("view engine", "handlebars");
 app.set("views", __dirname + "/views");
 app.use("/", express.static(__dirname + "/public"));
 
+
 app.use(session({
     store: new MongoStore({
         mongoUrl: MONGO,
@@ -44,6 +46,10 @@ app.use("/", viewsRouter)
 app.use("/api/sessions", sessionRouter)
 app.use("/api/products", ProductRouter);
 app.use("/api/carts", CartRouter);
+
+inicializePassport()
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 

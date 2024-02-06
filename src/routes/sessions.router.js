@@ -1,62 +1,75 @@
 import { Router } from "express";
 import userModel from "../dao/db/models/users.model.js";
 import ProductManager from "../dao/managersDB/ProductManager.js";
+import { createHash, validatePassword } from "../utils.js";
+import passport from "passport";
 
 const router = Router();
 const manager = new ProductManager();
 
-router.post("/register", async (req, res) => {
-    const { first_name, last_name, email, age, password } = req.body;
+//register user
+router.post("/register",passport.authenticate("register", {failureRedirect:"/register/failregister"}),
 
-    const exists = await userModel.findOne({ email })
-    if (exists) {
-        return res.status(400)
-            .send({
-                status: "Error",
-                error: "El usuario ya existe!"
-            })
-    }
-    const user = {
-        first_name,
-        last_name,
-        email,
-        age,
-        password
-    }
+async (req,res) => {
 
-    let result = await userModel.create(user)
-    res.send({
-        status:"Success",
-        message:"Usuario creado correctamente!"
-    })
+    res.send({status:"success", message:"User registrado"})
+})
+
+router.get("/failregister", async (req,res)=>{
+
+    console.log('Fallo el registro');
+
+    res.send({error: 'fallo en el registro'})
+
 })
 
 
-router.post('/login', async(req,res)=>{
-    const {email,password} = req.body;
-    //Buscar el usuario en la base de datos por su correo electronico
-    const user = await userModel.findOne({email,password})
+// Login de un Usuario
+router.post('/login', passport.authenticate("login", {failureRedirect:'/api/sessions/faillogin'}),
+async (req,res) =>{
 
-    if(!user){
-      return  res.status(404).send({
-            status:'Error',
-            error:"Datos incorrectos"
+   
+
+    if(!req.user){
+        return res.status(400).send({
+            status: "Error",
+            message: "No se ha podido autenticar al usuario."
         })
     }
     req.session.user = {
-        full_name:`${user.first_name} ${user.last_name}`,
-        email: user.email,
-        age: user.age
+        full_name:`${req.user.first_name} ${req.user.last_name}`,
+        age: req.user.age,
+        email: req.user.email,
+        role:req.user.role
     }
     const productsResponse = await manager.getProducts();
     req.session.products = productsResponse.msg;
+
     res.send({
-        status:"Success",
-        payload: req.session.user,
-        message: "Usted ha ingresado con exito!"
+        status:"success", payload:req.user
     })
+}
+
+)
+router.get('/faillogin', (req,res)=>{
+    res.send({error:"Fail login"})
 })
 
+
+//login con github
+router.get('/github', passport.authenticate('github',{scope:['user:email']}),
+async(req,res)=>{}
+);
+
+router.get('/githubcallback', passport.authenticate('github',{failureRedirect:'/login'}),
+async(req,res)=>{
+    req.session.user= req.user;
+    res.redirect('/')
+}
+);
+
+
+//logout user
 router.get('/logout',(req,res)=>{
     req.session.destroy(err=>{
         if(err){
@@ -68,5 +81,36 @@ router.get('/logout',(req,res)=>{
         res.redirect('/login')
     })
 })
+
+//reset password
+router.post('/resetpassword', async (req,res)=>{
+     const {email,password}  = req.body;
+     if(!email || !password) return res.status(400).send({
+        status:"Error",
+        message: "Datos incorrectos"
+     })
+     const user = await userModel.findOne({email});
+     if (!user) return res.status(404).send({
+        status:"Error",
+        message:"El usuario no existe"
+     })
+
+     const newHashPassword = createHash(password);
+
+     await userModer.updateOne({_id:user._id},{$set:{password:newHashPassword}});
+     res.send({
+        status:"Succes",
+        message:"Se ha restablecido la contraseña correctamente"
+    })
+
+});
+
+router.get('/current', (req, res) => {
+    if (req.session && req.session.user) {
+        res.send({ status: "success", payload: req.session.user });
+    } else {
+        res.status(401).send({ status: "error", message: "Usuario no autenticado" });
+    }
+});
 
 export default router;
