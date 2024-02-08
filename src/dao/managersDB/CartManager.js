@@ -1,27 +1,33 @@
-import cartModel from "../db/models/carts.model.js";
+import cartModel from "../db/models/carts.model.js"
 import productModel from "../db/models/products.model.js";
 
+
 class CartManager {
-    async getCarts() {
-        const carts = await cartModel.find();
-        return carts;
-    }
+    getCarts = async () => {
+        try {
+          const carts = await cartModel.find();
+          return carts;
+        } catch (error) {
+          console.error("Error fetching carts:", error);
+        }
+      };
+    
 
     async getCartByID(cid) {
         const cart = await cartModel.findById(cid);
         return cart;
     }
 
-    async newCart(products, quantity) {
+    createCarts = async () => {
+        const cart = {
+          products: [],
+          quantity:0
+        };
         try {
-            const result = await cartModel.create({ products, quantity });
-
-            return result;
-        } catch (error) {
-            console.error("Error al crear el carrito:", error.message);
-            throw new Error("Error al crear el carrito");
-        }
-    }
+          const carts = await cartModel.create(cart);
+          return carts;
+        } catch {}
+      };
 
     async addProductToCart(cid, pid, quantity = 1) {
         try {

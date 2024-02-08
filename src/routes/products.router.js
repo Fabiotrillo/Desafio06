@@ -1,50 +1,24 @@
 import express from 'express';
-import ProductManager from '../dao/managersDB/ProductManager.js';
+import {ProductController} from '../controllers/ProductsController.js';
 
 const router = express.Router();
-const productManager = new ProductManager();
+
+
 
 // Obtener todos los productos paginados y filtrados
-router.get('/', async (req, res) => {
-    const { limit, page, sort, category, availability, query } = req.query;
-
-    const products = await productManager.getProducts(limit, page, sort, category, availability, query);
-    
-    res.send({
-        status: "success",
-        products: products
-    });
-   
-});
+router.get('/', ProductController.getProducts);
 
 // Obtener un producto por ID
-router.get('/:pid', async (req, res) => {
-    const productId = req.params.pid;
-    const result = await productManager.getProductByID(productId);
-    res.json(result);
-});
+router.get('/:pid', ProductController.getProductById);
 
 // Crear un nuevo producto
-router.post('/', async (req, res) => {
-    const { title, description, price, code, stock, category, thumbnail } = req.body;
-    const result = await productManager.createProduct(title, description, price, code, stock, category, thumbnail);
-    res.json(result);
-});
+router.post('/', ProductController.createProduct );
 
 // Eliminar un producto por ID
-router.delete('/:pid', async (req, res) => {
-    const productId = req.params.pid;
-    const result = await productManager.deleteProductByID(productId);
-    res.json(result);
-});
+router.delete('/:pid',ProductController.deleteProduct);
 
 // Actualizar un producto por ID
-router.put('/:pid', async (req, res) => {
-    const productId = req.params.pid;
-    const updatedProductData = req.body;
-    const result = await productManager.upgradeProduct({ id: productId, ...updatedProductData });
-    res.json(result);
-});
+router.put('/:pid', ProductController.updateProduct);
 
 export default router;
 
